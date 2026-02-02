@@ -21,8 +21,8 @@ import sys
 
 MAIN_KEY = base64.b64decode('WWcmdGMlREV1aDYlWmNeOA==')
 MAIN_IV = base64.b64decode('Nm95WkRyMjJFM3ljaGpNJQ==')
-RELEASEVERSION = "OB48"
-USERAGENT = "Dalvik/2.1.0 (Linux; U; Android 13; CPH2095 Build/RKQ1.211119.001)"
+RELEASEVERSION = "OB50"
+USERAGENT = "Dalvik/2.1.0 (Linux; U; Android 14; Pixel 8 Build/UP1A.231005.007)"
 SUPPORTED_REGIONS = ["IND", "BR", "SG", "RU", "ID", "TW", "US", "VN", "TH", "ME", "PK", "CIS"]
 ACCOUNTS = {
     'IND': "uid=4104125669&password=E5655A0D14EF812A908726152BDD38021BEF528801AA42B16CFA4ED67141C4CA",
@@ -112,7 +112,7 @@ async def create_jwt(region: str) -> Tuple[str, str, str]:
         return f"Bearer {token}", region, serverUrl
 
 
-async def GetAccountInformation(ID, UNKNOWN_ID, regionMain, endpoint):
+async def GetAccountInformation(ID, UNKNOWN_ID, regionMain, endpoint, token=None, serverUrl=None):
     json_data = json.dumps({
         "a": ID,
         "b": UNKNOWN_ID
@@ -125,7 +125,10 @@ async def GetAccountInformation(ID, UNKNOWN_ID, regionMain, endpoint):
             "error": "Invalid request",
             "message": f"Unsupported 'region' parameter. Supported regions are: {', '.join(SUPPORTED_REGIONS)}."
         }
-    token, region, serverUrl = await create_jwt(regionMain)
+
+    if not token or not serverUrl:
+        token, region, serverUrl = await create_jwt(regionMain)
+
     headers = {
         'User-Agent': "Dalvik/2.1.0 (Linux; U; Android 13; A063 Build/TKQ1.221220.001)",
         'Connection': "Keep-Alive",
