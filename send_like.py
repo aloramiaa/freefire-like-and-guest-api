@@ -105,9 +105,32 @@ async def main():
     server_name_in = input("Enter server name (e.g., IND, BR, US, SAC, NA): ").strip().upper()
     from count_likes import GetAccountInformation
 
+    # Load guests early to use one for fetching info
+    try:
+        with open(guests_file, "r") as f:
+            guests = json.load(f)
+    except Exception as e:
+        print(f"Error loading guest file: {e}")
+        return
+
+    # Try to get token from a guest to use for fetching account info
+    token_for_info = None
+    server_url_for_info = None
+    if guests:
+        print("\nObtaining token from a guest account for info fetching...")
+        try:
+            # Use the first guest
+            g = guests[0]
+            t, _, s = await create_jwt(str(g["uid"]), g["password"])
+            token_for_info = f"Bearer {t}"
+            server_url_for_info = s
+            print("Token obtained successfully.")
+        except Exception as e:
+            print(f"Failed to get token from guest: {e}. Will attempt default method.")
+
     print("\nFetching target account info...")
     try:
-        info = await GetAccountInformation(uid_to_like, "0", server_name_in, endpoint)
+        info = await GetAccountInformation(uid_to_like, "0", server_name_in, endpoint, token=token_for_info, serverUrl=server_url_for_info)
         if info.get("error"):
             print(f"Error: {info['message']}")
             return
@@ -135,8 +158,6 @@ async def main():
     BASE_URL = get_base_url(server_name_in)
 
     ensure_target(uid_to_like)
-    with open(guests_file, "r") as f:
-        guests = json.load(f)
 
     available_guests = [g for g in guests if not guest_used_for_target(uid_to_like, str(g["uid"]))]
 
@@ -161,8 +182,8 @@ async def main():
     # Fetch again after likes sent
     print("\nRe-fetching account info to verify new like count...")
     try:
-        info_after = await GetAccountInformation(uid_to_like, "0", server_name_in, endpoint)
-        basic_info = info.get("basicInfo", {})
+        info_after = await GetAccountInformation(uid_to_like, "0", server_name_in, endpoint, token=token_for_info, serverUrl=server_url_for_info)
+        basic_info = info_after.get("basicInfo", {})
         new_likes = basic_info.get("liked", 0)
         print(f"Like count now = {new_likes}")
         diff = new_likes - current_likes
